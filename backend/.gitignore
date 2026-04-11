@@ -1,0 +1,21 @@
+# Dependencias
+node_modules/
+
+# Variables de entorno — NUNCA subir a Git
+.env
+
+# Build output
+dist/
+build/
+
+# Logs
+*.log
+logs/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Cobertura de tests
+coverage/
+.nyc_output
