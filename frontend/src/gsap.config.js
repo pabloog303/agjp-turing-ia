@@ -1,6 +1,7 @@
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { TextPlugin }    from 'gsap/TextPlugin'
 
-gsap.registerPlugin(ScrollTrigger)
+gsap.registerPlugin(ScrollTrigger, TextPlugin)
 
-export { gsap, ScrollTrigger }
+export { gsap, ScrollTrigger, TextPlugin }

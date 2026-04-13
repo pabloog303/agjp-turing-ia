@@ -26,6 +26,6 @@
   /* Tarjeta de producto */
   .card {
     @apply bg-white rounded-xl shadow-md hover:shadow-lg
-           transition-shadow duration-200 overflow-hidden;
+           transition-shadow duration-200 overflow-hidden h-full;
   }
 }

@@ -22,13 +22,13 @@ INSERT INTO usuarios (nombre, email, password_hash, role_id) VALUES
   (
     'Administrador Turing',
     'admin@turing.com',
-    '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',
+    '$2b$10$6LMXEBOyxIImyxWTUKHd5OFnSZvXyw.eTusEjmthvXl9z8Awdz50K',
     1
   ),
   (
     'Usuario Demo',
     'user@turing.com',
-    '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',
+    '$2b$10$6LMXEBOyxIImyxWTUKHd5OFnSZvXyw.eTusEjmthvXl9z8Awdz50K',
     2
   );
 
@@ -43,7 +43,7 @@ INSERT INTO productos (nombre, descripcion, precio, categoria, imagen_url, stock
     'GPU de alto rendimiento para gaming 4K, diseño 3D y cargas de trabajo de IA. Arquitectura Ada Lovelace con 16,384 núcleos CUDA y memoria GDDR6X.',
     1299.99,
     'Hardware',
-    'https://placehold.co/400x225/1a2332/00e5a0?text=RTX+4090',
+    'https://images.unsplash.com/photo-1587202372583-49330a15584d?w=600&q=80',
     5
   ),
   (
@@ -51,7 +51,7 @@ INSERT INTO productos (nombre, descripcion, precio, categoria, imagen_url, stock
     'Procesador flagship de 14ª generación con 24 núcleos (8P+16E), 6.0 GHz boost. Ideal para workstations, streaming y renderizado profesional.',
     589.99,
     'Hardware',
-    'https://placehold.co/400x225/1a2332/00e5a0?text=i9-14900K',
+    'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=600&q=80',
     8
   ),
 
@@ -61,7 +61,7 @@ INSERT INTO productos (nombre, descripcion, precio, categoria, imagen_url, stock
     'Suite completa de aplicaciones creativas: Photoshop, Illustrator, Premiere Pro, After Effects y más de 20 apps. Licencia anual con 100 GB en nube.',
     54.99,
     'Software',
-    'https://placehold.co/400x225/1a2332/00e5a0?text=Adobe+CC',
+    'https://images.unsplash.com/photo-1626785774573-4b799315345d?w=600&q=80',
     999
   ),
   (
@@ -69,7 +69,7 @@ INSERT INTO productos (nombre, descripcion, precio, categoria, imagen_url, stock
     'Software profesional de diseño asistido por computadora 2D/3D para ingeniería civil, arquitectura y manufactura. Incluye herramientas de colaboración en nube.',
     220.00,
     'Software',
-    'https://placehold.co/400x225/1a2332/00e5a0?text=AutoCAD+2025',
+    'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=600&q=80',
     50
   ),
 
@@ -79,7 +79,7 @@ INSERT INTO productos (nombre, descripcion, precio, categoria, imagen_url, stock
     'Plan anual de soporte remoto especializado con tiempo de respuesta garantizado menor a 2 horas. Incluye monitoreo proactivo, actualizaciones y respaldo mensual.',
     299.00,
     'Servicios',
-    'https://placehold.co/400x225/1a2332/00e5a0?text=Soporte+247',
+    'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=600&q=80',
     20
   ),
   (
@@ -87,6 +87,6 @@ INSERT INTO productos (nombre, descripcion, precio, categoria, imagen_url, stock
     'Servicio de instalación y configuración profesional de hardware y software a domicilio o remoto. Incluye optimización del sistema, drivers y pruebas de rendimiento.',
     89.99,
     'Servicios',
-    'https://placehold.co/400x225/1a2332/00e5a0?text=Instalacion+Pro',
+    'https://images.unsplash.com/photo-1593640495253-23196b27a87f?w=600&q=80',
     15
   );

@@ -3,6 +3,7 @@ import { useNavigate, Navigate, Link } from 'react-router-dom'
 import { useGSAP } from '@gsap/react'
 import { gsap } from '../gsap.config.js'
 import { useAuth } from '../context/AuthContext'
+import Logo from '../components/Logo'
 
 export default function LoginPage() {
   const { login, isAuthenticated } = useAuth()
@@ -73,7 +74,9 @@ export default function LoginPage() {
 
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-navy">🖥 Turing Catalog</h1>
+          <div className="flex justify-center">
+            <Logo size="lg" />
+          </div>
           <p className="text-gray-500 mt-2 text-sm">Inicia sesión para continuar</p>
         </div>
 

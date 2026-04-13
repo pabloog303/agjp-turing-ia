@@ -1,0 +1,208 @@
+{
+  "info": {
+    "name": "Turing-IA Tech Catalog API",
+    "description": "Colección completa de endpoints para el catálogo de productos Turing-IA. Base URL: http://localhost:3001/api",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:3001/api" },
+    { "key": "token",    "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login — Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.token) { pm.collectionVariables.set('token', json.token); }",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Tiene token', () => pm.expect(json.token).to.be.a('string'));",
+                  "pm.test('Usuario con role_id 1', () => pm.expect(json.user.role_id).to.eql(1));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@turing.com\",\n  \"password\": \"admin123\"\n}"
+            },
+            "description": "Inicia sesión como administrador. Guarda el token JWT automáticamente en la variable de colección `token`."
+          }
+        },
+        {
+          "name": "Login — User",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@turing.com\",\n  \"password\": \"admin123\"\n}"
+            },
+            "description": "Inicia sesión como usuario estándar (role_id = 2). No tiene permisos para crear/editar/eliminar productos."
+          }
+        },
+        {
+          "name": "Login — Credenciales incorrectas (401)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@turing.com\",\n  \"password\": \"wrongpassword\"\n}"
+            },
+            "description": "Debe devolver 401 con mensaje 'Credenciales incorrectas'."
+          }
+        },
+        {
+          "name": "Login — Campos vacíos (400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"\",\n  \"password\": \"\"\n}"
+            },
+            "description": "Debe devolver 400 con mensaje de validación."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Productos",
+      "item": [
+        {
+          "name": "GET todos los productos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Es un array', () => pm.expect(pm.response.json()).to.be.an('array'));",
+                  "pm.test('Todos activos', () => pm.response.json().forEach(p => pm.expect(p.activo).to.eql(1)));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/productos",
+            "description": "Devuelve todos los productos con activo = 1, ordenados por fecha de creación descendente. No requiere autenticación."
+          }
+        },
+        {
+          "name": "POST crear producto (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_url}}/productos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Samsung 990 Pro 2TB\",\n  \"descripcion\": \"SSD NVMe PCIe 4.0 con velocidades de lectura de hasta 7,450 MB/s.\",\n  \"precio\": 189.99,\n  \"categoria\": \"Hardware\",\n  \"imagen_url\": \"https://images.unsplash.com/photo-1597872200969-2b65d56bd16b?w=600\",\n  \"stock\": 12\n}"
+            },
+            "description": "Crea un nuevo producto. Requiere token JWT de Admin (role_id = 1).\n\nCampos requeridos: nombre, precio, categoria.\nCategorías válidas: Hardware, Software, Servicios."
+          }
+        },
+        {
+          "name": "POST crear — sin token (401)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/productos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Test\",\n  \"precio\": 10,\n  \"categoria\": \"Hardware\"\n}"
+            },
+            "description": "Debe devolver 401 — no se envía Authorization header."
+          }
+        },
+        {
+          "name": "POST crear — datos inválidos (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_url}}/productos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"A\",\n  \"precio\": -50,\n  \"categoria\": \"Inexistente\"\n}"
+            },
+            "description": "Debe devolver 400 con los errores de validación: nombre muy corto, precio negativo, categoría inválida."
+          }
+        },
+        {
+          "name": "PUT actualizar producto (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_url}}/productos/1",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"precio\": 1199.99,\n  \"stock\": 3\n}"
+            },
+            "description": "Actualiza parcialmente el producto con id=1. Solo se actualizan los campos enviados. Requiere token Admin."
+          }
+        },
+        {
+          "name": "PUT actualizar — no encontrado (404)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_url}}/productos/9999",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"precio\": 100\n}"
+            },
+            "description": "Debe devolver 404 — producto con id 9999 no existe."
+          }
+        },
+        {
+          "name": "DELETE eliminar producto (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_url}}/productos/6",
+            "description": "Soft delete — pone activo = 0 en el producto con id=6. El registro permanece en la base de datos. Requiere token Admin."
+          }
+        },
+        {
+          "name": "DELETE — sin permisos de Admin (403)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_url}}/productos/1",
+            "description": "Si el token pertenece a un User (role_id = 2), debe devolver 403 Forbidden."
+          }
+        }
+      ]
+    }
+  ]
+}

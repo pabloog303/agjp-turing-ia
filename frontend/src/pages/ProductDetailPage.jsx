@@ -5,6 +5,8 @@ import { gsap, ScrollTrigger } from '../gsap.config.js'
 import Navbar  from '../components/Navbar'
 import Spinner from '../components/Spinner'
 import { getProductos } from '../services/api'
+import { getGallery } from '../data/productImages.js'
+import { useMagnet } from '../hooks/useMagnet.js'
 
 const SPECS = [
   { label: 'Garantía',       valor: '12 meses' },
@@ -43,34 +45,42 @@ const MOCK_PRODUCTOS = [
   { id:6, nombre:'Setup e Instalación Pro',   descripcion:'Instalación y configuración profesional de hardware y software a domicilio o remoto. Incluye optimización del sistema y pruebas.',        precio:89.99,   categoria:'Servicios',imagen_url:'https://images.unsplash.com/photo-1593640495253-23196b27a87f?w=600&q=80', stock:15  },
 ]
 
+const CATEGORIA_COLORS = {
+  Hardware:  { bg: 'bg-blue-50',   text: 'text-blue-600',   border: 'border-blue-200' },
+  Software:  { bg: 'bg-purple-50', text: 'text-purple-600', border: 'border-purple-200' },
+  Servicios: { bg: 'bg-amber-50',  text: 'text-amber-600',  border: 'border-amber-200' },
+}
+
 export default function ProductDetailPage() {
   const { id }   = useParams()
   const navigate = useNavigate()
 
-  const [producto,     setProducto]     = useState(null)
-  const [loading,      setLoading]      = useState(true)
-  const [error,        setError]        = useState('')
-  const [imagenActiva, setImagenActiva] = useState('')
+  const [producto,    setProducto]    = useState(null)
+  const [loading,     setLoading]     = useState(true)
+  const [error,       setError]       = useState('')
+  const [imgIndex,    setImgIndex]    = useState(0)
+  const [cantidad,    setCantidad]    = useState(1)
+  const [enCarrito,   setEnCarrito]   = useState(false)
 
-  const heroRef   = useRef(null)
-  const colIzqRef = useRef(null)
-  const colDerRef = useRef(null)
-  const specsRef  = useRef(null)
-  const planesRef = useRef(null)
+  const heroRef      = useRef(null)
+  const colIzqRef    = useRef(null)
+  const colDerRef    = useRef(null)
+  const specsRef     = useRef(null)
+  const planesRef    = useRef(null)
+  const imgRef       = useRef(null)
+  const priceRef     = useRef(null)
+  const magnetCart   = useMagnet(0.4)
+  const magnetContact = useMagnet(0.4)
 
   useEffect(() => {
     async function cargar() {
       try {
         let data
-        try {
-          data = await getProductos()
-        } catch {
-          data = MOCK_PRODUCTOS
-        }
+        try { data = await getProductos() } catch { data = MOCK_PRODUCTOS }
         const encontrado = data.find(p => String(p.id) === String(id))
         if (!encontrado) { setError('Producto no encontrado'); return }
         setProducto(encontrado)
-        setImagenActiva(encontrado.imagen_url || '')
+        setImgIndex(0)
       } catch (err) {
         setError(err.message)
       } finally {
@@ -80,76 +90,93 @@ export default function ProductDetailPage() {
     cargar()
   }, [id])
 
-  // Hero slide-in desde izquierda
+  // Hero
   useGSAP(() => {
     if (!producto) return
-    gsap.from('.hero-nombre', { x: -30, opacity: 0, duration: 0.6, ease: 'power2.out' })
-    gsap.from('.hero-precio', { x: -30, opacity: 0, duration: 0.6, delay: 0.15, ease: 'power2.out' })
-    gsap.from('.hero-volver', { x: -20, opacity: 0, duration: 0.5, delay: 0.25, ease: 'power2.out' })
+    const tl = gsap.timeline()
+    tl.fromTo('.hero-breadcrumb', { y: -10, opacity: 0 }, { y: 0, opacity: 1, duration: 0.4, ease: 'power2.out' })
+      .fromTo('.hero-nombre',     { x: -30, opacity: 0 }, { x: 0, opacity: 1, duration: 0.6, ease: 'power2.out' }, '-=0.2')
+      .fromTo('.hero-precio',     { x: -30, opacity: 0 }, { x: 0, opacity: 1, duration: 0.5, ease: 'power2.out' }, '-=0.35')
+      .fromTo('.hero-volver',     { x: -20, opacity: 0 }, { x: 0, opacity: 1, duration: 0.4, ease: 'power2.out' }, '-=0.25')
   }, { scope: heroRef, dependencies: [producto] })
 
-  // Columna izquierda fade desde izquierda
+  // Columna izquierda
   useGSAP(() => {
     if (!producto) return
-    gsap.from(colIzqRef.current, { x: -20, opacity: 0, duration: 0.7, ease: 'power2.out', delay: 0.1 })
+    gsap.fromTo(colIzqRef.current, { x: -25, opacity: 0 }, { x: 0, opacity: 1, duration: 0.7, ease: 'power2.out', delay: 0.15 })
   }, { scope: colIzqRef, dependencies: [producto] })
 
-  // Columna derecha fade desde derecha
+  // Columna derecha
   useGSAP(() => {
     if (!producto) return
-    gsap.from(colDerRef.current, { x: 20, opacity: 0, duration: 0.7, ease: 'power2.out', delay: 0.2 })
+    gsap.fromTo(colDerRef.current, { x: 25, opacity: 0 }, { x: 0, opacity: 1, duration: 0.7, ease: 'power2.out', delay: 0.25 })
   }, { scope: colDerRef, dependencies: [producto] })
 
-  // Specs con ScrollTrigger stagger
+  // Contador animado de precio
+  useEffect(() => {
+    if (!producto || !priceRef.current) return
+    const target = Number(producto.precio)
+    const counter = { val: 0 }
+    gsap.to(counter, {
+      val: target,
+      duration: 1.2,
+      delay: 0.4,
+      ease: 'power2.out',
+      onUpdate: () => {
+        if (priceRef.current) {
+          priceRef.current.textContent =
+            '$' + counter.val.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+        }
+      },
+    })
+  }, [producto])
+
+  // Specs
   useEffect(() => {
     if (!producto || !specsRef.current) return
     const items = specsRef.current.querySelectorAll('.spec-item')
     gsap.from(items, {
-      y: 15,
-      opacity: 0,
-      duration: 0.5,
-      stagger: 0.08,
-      ease: 'power2.out',
-      scrollTrigger: {
-        trigger: specsRef.current,
-        start: 'top 85%',
-        once: true,
-      },
+      y: 15, opacity: 0, duration: 0.5, stagger: 0.08, ease: 'power2.out',
+      scrollTrigger: { trigger: specsRef.current, start: 'top 85%', once: true },
     })
     return () => ScrollTrigger.getAll().forEach(t => t.kill())
   }, [producto])
 
-  // Planes con ScrollTrigger stagger
+  // Planes
   useEffect(() => {
     if (!producto || !planesRef.current) return
     const cards = planesRef.current.querySelectorAll('.plan-card')
     gsap.from(cards, {
-      y: 30,
-      opacity: 0,
-      duration: 0.6,
-      stagger: 0.12,
-      ease: 'power2.out',
-      scrollTrigger: {
-        trigger: planesRef.current,
-        start: 'top 85%',
-        once: true,
-      },
+      y: 30, opacity: 0, duration: 0.6, stagger: 0.12, ease: 'power2.out',
+      scrollTrigger: { trigger: planesRef.current, start: 'top 85%', once: true },
     })
     return () => ScrollTrigger.getAll().forEach(t => t.kill())
   }, [producto])
 
-  const thumbnails = producto ? [
-    producto.imagen_url,
-    producto.imagen_url?.replace('1a2332', '2a3342'),
-    producto.imagen_url?.replace('1a2332', '0d1a2a'),
-  ] : []
+  // Animación de cambio de imagen
+  function cambiarImagen(newIndex) {
+    if (!imgRef.current) { setImgIndex(newIndex); return }
+    gsap.to(imgRef.current, {
+      opacity: 0, scale: 0.97, duration: 0.18, ease: 'power2.in',
+      onComplete: () => {
+        setImgIndex(newIndex)
+        gsap.to(imgRef.current, { opacity: 1, scale: 1, duration: 0.28, ease: 'power2.out' })
+      },
+    })
+  }
 
-  const miniThumbs = producto ? [
-    producto.imagen_url?.replace('400x225', '200x150'),
-    producto.imagen_url?.replace('400x225', '200x150').replace('1a2332', '2a3342'),
-    producto.imagen_url?.replace('400x225', '200x150').replace('1a2332', '0d1a2a'),
-    producto.imagen_url?.replace('400x225', '200x150').replace('1a2332', '162233'),
-  ] : []
+  function prev() {
+    if (!gallery.length) return
+    cambiarImagen((imgIndex - 1 + gallery.length) % gallery.length)
+  }
+
+  function next() {
+    if (!gallery.length) return
+    cambiarImagen((imgIndex + 1) % gallery.length)
+  }
+
+  const gallery = producto ? getGallery(producto.id, producto.imagen_url) : []
+  const catColor = CATEGORIA_COLORS[producto?.categoria] ?? { bg: 'bg-gray-50', text: 'text-gray-600', border: 'border-gray-200' }
 
   if (loading) return (
     <div className="min-h-screen bg-[#f0f4f8] flex flex-col">
@@ -176,7 +203,7 @@ export default function ProductDetailPage() {
 
       {/* ── HERO ── */}
       <section ref={heroRef} className="bg-[#1a2332] text-white py-10 px-8">
-        <p className="text-gray-500 text-xs mb-2">
+        <p className="hero-breadcrumb text-gray-500 text-xs mb-2">
           Catálogo › {producto.categoria} › {producto.nombre}
         </p>
         <h1 className="hero-nombre text-3xl font-bold">{producto.nombre}</h1>
@@ -191,75 +218,193 @@ export default function ProductDetailPage() {
       {/* ── SECCIÓN PRINCIPAL ── */}
       <section className="max-w-6xl mx-auto py-10 px-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
 
-        {/* COL IZQUIERDA */}
+        {/* ── GALERÍA (col izquierda) ── */}
         <div ref={colIzqRef} className="lg:col-span-7 flex flex-col gap-4">
-          <div className="rounded-xl overflow-hidden shadow-md bg-[#1a2332]">
+
+          {/* Imagen principal con botones de navegación */}
+          <div className="relative rounded-2xl overflow-hidden shadow-lg bg-[#1a2332] group">
             <img
-              src={imagenActiva}
+              ref={imgRef}
+              src={gallery[imgIndex]}
               alt={producto.nombre}
-              className="w-full object-cover"
+              className="w-full h-80 md:h-[420px] object-cover"
             />
+
+            {/* Contador */}
+            <span className="absolute top-3 right-3 bg-black/50 text-white text-xs font-semibold px-2.5 py-1 rounded-full backdrop-blur-sm">
+              {imgIndex + 1} / {gallery.length}
+            </span>
+
+            {/* Botón anterior */}
+            <button
+              onClick={prev}
+              className="absolute left-3 top-1/2 -translate-y-1/2
+                         w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm border border-white/30
+                         flex items-center justify-center text-white
+                         opacity-0 group-hover:opacity-100 transition-all duration-200
+                         hover:bg-[#00e5a0] hover:border-[#00e5a0] hover:text-[#1a2332]"
+              aria-label="Imagen anterior"
+            >
+              ‹
+            </button>
+
+            {/* Botón siguiente */}
+            <button
+              onClick={next}
+              className="absolute right-3 top-1/2 -translate-y-1/2
+                         w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm border border-white/30
+                         flex items-center justify-center text-white
+                         opacity-0 group-hover:opacity-100 transition-all duration-200
+                         hover:bg-[#00e5a0] hover:border-[#00e5a0] hover:text-[#1a2332]"
+              aria-label="Imagen siguiente"
+            >
+              ›
+            </button>
           </div>
-          <div className="flex gap-3">
-            {thumbnails.map((thumb, i) => (
-              <img
+
+          {/* Tira de thumbnails */}
+          <div className="flex gap-2">
+            {gallery.map((img, i) => (
+              <button
                 key={i}
-                src={thumb}
-                alt={`Vista ${i + 1}`}
-                onClick={() => setImagenActiva(thumb)}
-                className={`flex-1 h-20 object-cover rounded-lg cursor-pointer border-2 transition-all
-                  ${imagenActiva === thumb
-                    ? 'border-[#00e5a0] ring-2 ring-[#00e5a0]'
-                    : 'border-transparent hover:border-[#00e5a0]/50'
+                onClick={() => cambiarImagen(i)}
+                className={`flex-1 h-16 rounded-xl overflow-hidden border-2 transition-all duration-200
+                  ${i === imgIndex
+                    ? 'border-[#00e5a0] ring-2 ring-[#00e5a0]/50 scale-105'
+                    : 'border-transparent opacity-60 hover:opacity-100 hover:border-[#00e5a0]/40'
                   }`}
+              >
+                <img src={img} alt={`Vista ${i + 1}`} className="w-full h-full object-cover" />
+              </button>
+            ))}
+          </div>
+
+          {/* Dots indicadores */}
+          <div className="flex items-center justify-center gap-2">
+            {gallery.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => cambiarImagen(i)}
+                className={`rounded-full transition-all duration-200 ${
+                  i === imgIndex
+                    ? 'w-5 h-2 bg-[#00e5a0]'
+                    : 'w-2 h-2 bg-gray-300 hover:bg-gray-400'
+                }`}
               />
             ))}
           </div>
         </div>
 
-        {/* COL DERECHA */}
+        {/* ── INFO PANEL (col derecha) ── */}
         <div ref={colDerRef} className="lg:col-span-5 flex flex-col gap-5">
-          <div className="grid grid-cols-2 gap-2">
-            {miniThumbs.map((src, i) => (
-              <div
-                key={i}
-                className="rounded-lg overflow-hidden bg-[#1a2332] aspect-video cursor-pointer
-                           hover:ring-2 hover:ring-[#00e5a0] transition-all"
-                onClick={() => setImagenActiva(src)}
-              >
-                <img src={src} alt={`Mini ${i + 1}`} className="w-full h-full object-cover" />
-              </div>
-            ))}
+
+          {/* Badge categoría + rating */}
+          <div className="flex items-center justify-between">
+            <span className={`text-xs font-semibold px-3 py-1 rounded-full border ${catColor.bg} ${catColor.text} ${catColor.border}`}>
+              {producto.categoria}
+            </span>
+            <div className="flex items-center gap-1">
+              {[1,2,3,4,5].map(s => (
+                <svg key={s} className={`w-4 h-4 fill-current ${s <= 4 ? 'text-yellow-400' : 'text-gray-200'}`} viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                </svg>
+              ))}
+              <span className="text-xs text-gray-400 ml-1">(4.0)</span>
+            </div>
           </div>
 
-          {producto.stock > 0 ? (
-            <span className="text-green-500 font-semibold text-sm">
-              ✓ En stock ({producto.stock} disponibles)
-            </span>
-          ) : (
-            <span className="text-red-500 font-semibold text-sm">✗ Agotado</span>
-          )}
+          {/* Nombre */}
+          <h2 className="text-2xl font-bold text-[#1a2332] leading-tight">{producto.nombre}</h2>
 
+          {/* Precio */}
+          <div className="flex items-baseline gap-2">
+            <span ref={priceRef} className="text-3xl font-extrabold text-[#00e5a0]">
+              $0.00
+            </span>
+            <span className="text-sm text-gray-400">MXN · IVA incluido</span>
+          </div>
+
+          {/* Stock badge */}
           <div>
-            <p className="text-xs text-gray-400 uppercase tracking-widest mb-1">Descripción</p>
+            {producto.stock > 0 ? (
+              <span className="inline-flex items-center gap-1.5 bg-green-50 text-green-700 border border-green-200 text-xs font-semibold px-3 py-1.5 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
+                En stock — {producto.stock} disponibles
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 bg-red-50 text-red-600 border border-red-200 text-xs font-semibold px-3 py-1.5 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block" />
+                Agotado
+              </span>
+            )}
+          </div>
+
+          {/* Descripción */}
+          <div className="bg-white rounded-xl p-4 border border-gray-100">
+            <p className="text-xs text-gray-400 uppercase tracking-widest mb-2">Descripción</p>
             <p className="text-gray-600 text-sm leading-relaxed">{producto.descripcion}</p>
           </div>
 
           {/* Especificaciones */}
-          <div ref={specsRef}>
-            <p className="text-xs text-gray-400 uppercase tracking-widest mb-2">Especificaciones</p>
+          <div ref={specsRef} className="bg-white rounded-xl p-4 border border-gray-100">
+            <p className="text-xs text-gray-400 uppercase tracking-widest mb-3">Especificaciones</p>
             <ul className="flex flex-col gap-2">
               {SPECS.map(s => (
-                <li key={s.label} className="spec-item flex justify-between text-sm border-b border-gray-100 pb-1">
-                  <span className="text-gray-500">{s.label}</span>
+                <li key={s.label} className="spec-item flex justify-between text-sm py-1.5 border-b border-gray-50 last:border-0">
+                  <span className="text-gray-500 flex items-center gap-2">
+                    <span className="w-1 h-1 rounded-full bg-[#00e5a0] inline-block" />
+                    {s.label}
+                  </span>
                   <span className="font-semibold text-[#1a2332]">{s.valor}</span>
                 </li>
               ))}
             </ul>
           </div>
 
-          <button className="btn-primary w-full">🛒 Agregar al carrito</button>
-          <button className="btn-outline w-full">📞 Contactar proveedor</button>
+          {/* Selector de cantidad */}
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-gray-500 font-medium">Cantidad</span>
+            <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
+              <button
+                onClick={() => setCantidad(q => Math.max(1, q - 1))}
+                className="w-10 h-10 flex items-center justify-center text-[#1a2332] hover:bg-[#00e5a0]/10 transition-colors font-bold text-lg"
+              >
+                −
+              </button>
+              <span className="w-12 text-center font-bold text-[#1a2332] text-sm">{cantidad}</span>
+              <button
+                onClick={() => setCantidad(q => Math.min(producto.stock, q + 1))}
+                className="w-10 h-10 flex items-center justify-center text-[#1a2332] hover:bg-[#00e5a0]/10 transition-colors font-bold text-lg"
+                disabled={cantidad >= producto.stock}
+              >
+                +
+              </button>
+            </div>
+            <span className="text-xs text-gray-400">máx. {producto.stock}</span>
+          </div>
+
+          {/* Botones CTA */}
+          <div className="flex flex-col gap-3 pt-1">
+            <button
+              ref={magnetCart}
+              onClick={() => setEnCarrito(true)}
+              disabled={producto.stock === 0}
+              className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all duration-200
+                ${enCarrito
+                  ? 'bg-green-500 text-white'
+                  : 'bg-[#00e5a0] text-[#1a2332] hover:bg-[#00c989] active:scale-[0.98]'
+                }
+                disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              {enCarrito ? '✓ Agregado al carrito' : `🛒 Agregar al carrito · ${cantidad}`}
+            </button>
+            <button
+              ref={magnetContact}
+              className="w-full py-3 rounded-xl font-semibold text-sm border-2 border-[#1a2332] text-[#1a2332] hover:bg-[#1a2332] hover:text-white transition-all duration-200 active:scale-[0.98]"
+            >
+              📞 Contactar proveedor
+            </button>
+          </div>
         </div>
       </section>
 
@@ -271,11 +416,11 @@ export default function ProductDetailPage() {
         >
           ◄
         </button>
-        {Array.from({ length: 5 }, (_, i) => (
+        {Array.from({ length: 6 }, (_, i) => (
           <span
             key={i}
             className={`rounded-full transition-all ${
-              i === Number(id) % 5
+              i + 1 === Number(id)
                 ? 'w-4 h-4 bg-[#00e5a0]'
                 : 'w-3 h-3 bg-gray-300'
             }`}
@@ -293,12 +438,8 @@ export default function ProductDetailPage() {
       <section className="grid grid-cols-1 md:grid-cols-2">
         <div className="bg-[#1a2332] text-white p-14 flex flex-col justify-center gap-5">
           <p className="text-xs text-gray-400 uppercase tracking-widest">¿Necesitas ayuda?</p>
-          <h2 className="text-2xl font-bold leading-snug">
-            ¿Necesitas asesoría personalizada?
-          </h2>
-          <p className="text-gray-400 text-sm">
-            Nuestro equipo de expertos está listo para ayudarte.
-          </p>
+          <h2 className="text-2xl font-bold leading-snug">¿Necesitas asesoría personalizada?</h2>
+          <p className="text-gray-400 text-sm">Nuestro equipo de expertos está listo para ayudarte.</p>
           <button className="btn-primary w-fit">Contactar ahora</button>
         </div>
         <div className="bg-[#00e5a0] min-h-52 md:min-h-0" />
@@ -308,8 +449,7 @@ export default function ProductDetailPage() {
       <section className="py-16 px-6 max-w-5xl mx-auto">
         <p className="text-center text-xs text-gray-400 uppercase tracking-widest mb-2">Planes</p>
         <h2 className="text-2xl font-bold text-[#1a2332] text-center mb-10">Elige tu plan</h2>
-
-        <div ref={planesRef} className="grid grid-cols-3 gap-4">
+        <div ref={planesRef} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {PLANES.map(plan => (
             <div
               key={plan.nombre}
@@ -320,14 +460,11 @@ export default function ProductDetailPage() {
               }`}
             >
               {plan.destacado && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#00e5a0] text-[#1a2332]
-                                 text-xs font-bold px-3 py-1 rounded-full">
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#00e5a0] text-[#1a2332] text-xs font-bold px-3 py-1 rounded-full">
                   Popular
                 </span>
               )}
-              <h3 className="font-bold text-center text-base text-[#1a2332]">
-                {plan.nombre}
-              </h3>
+              <h3 className="font-bold text-center text-base text-[#1a2332]">{plan.nombre}</h3>
               <ul className="flex flex-col gap-2 flex-1">
                 {plan.items.map((item, i) => (
                   <li key={item} className="text-xs text-gray-600 flex items-center gap-2">
@@ -365,7 +502,7 @@ export default function ProductDetailPage() {
           <div>
             <p className="text-white font-semibold mb-3 text-xs uppercase tracking-widest">Enlaces</p>
             <ul className="flex flex-col gap-2 text-xs">
-              <li><Link to="/" className="hover:text-[#00e5a0] transition-colors">Catálogo</Link></li>
+              <li><Link to="/"      className="hover:text-[#00e5a0] transition-colors">Catálogo</Link></li>
               <li><Link to="/login" className="hover:text-[#00e5a0] transition-colors">Iniciar sesión</Link></li>
             </ul>
           </div>

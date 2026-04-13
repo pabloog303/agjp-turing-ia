@@ -1,39 +1,81 @@
+import { useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { gsap } from '../gsap.config.js'
+import { getMainImage } from '../data/productImages.js'
 
 export default function ProductCard({ producto, isAdmin, onEdit, onDelete }) {
   const navigate = useNavigate()
-  const { id, nombre, descripcion, precio, imagen_url, categoria, stock } = producto
+  const { id, nombre, descripcion, precio, imagen_url, categoria } = producto
+  const imagen   = getMainImage(id, imagen_url)
+  const cardRef  = useRef(null)
+
+  // ── 3D tilt on hover ────────────────────────────────────────────────────
+  useEffect(() => {
+    const el = cardRef.current
+    if (!el) return
+
+    function onMove(e) {
+      const rect   = el.getBoundingClientRect()
+      const cx     = rect.left + rect.width  / 2
+      const cy     = rect.top  + rect.height / 2
+      const dx     = (e.clientX - cx) / (rect.width  / 2)   // −1 … 1
+      const dy     = (e.clientY - cy) / (rect.height / 2)   // −1 … 1
+      const rotX   = -dy * 8    // inclinación vertical máx ±8°
+      const rotY   =  dx * 8    // inclinación horizontal máx ±8°
+
+      gsap.to(el, {
+        rotateX: rotX,
+        rotateY: rotY,
+        scale: 1.03,
+        transformPerspective: 800,
+        duration: 0.3,
+        ease: 'power2.out',
+      })
+    }
+
+    function onLeave() {
+      gsap.to(el, {
+        rotateX: 0,
+        rotateY: 0,
+        scale: 1,
+        duration: 0.5,
+        ease: 'elastic.out(1, 0.4)',
+      })
+    }
+
+    el.addEventListener('mousemove', onMove)
+    el.addEventListener('mouseleave', onLeave)
+    return () => {
+      el.removeEventListener('mousemove', onMove)
+      el.removeEventListener('mouseleave', onLeave)
+    }
+  }, [])
 
   return (
-    <div className="card flex flex-col">
-
-      {/* Imagen — área oscura top */}
-      {imagen_url ? (
-        <img src={imagen_url} alt={nombre} className="h-44 w-full object-cover bg-[#1a2332]" />
+    <div
+      ref={cardRef}
+      className="card flex flex-col"
+      style={{ transformStyle: 'preserve-3d', willChange: 'transform' }}
+    >
+      {/* Imagen */}
+      {imagen ? (
+        <img src={imagen} alt={nombre} className="h-44 w-full object-cover bg-[#1a2332]" />
       ) : (
         <div className="h-44 w-full bg-[#1a2332] flex items-center justify-center text-gray-500 text-xs">
           Sin imagen
         </div>
       )}
 
-      {/* Cuerpo de la card */}
+      {/* Cuerpo */}
       <div className="p-4 flex flex-col flex-1">
-
-        {/* Categoría — texto pequeño gris */}
         <p className="text-xs text-gray-400 uppercase tracking-wide">{categoria}</p>
-
-        {/* Nombre */}
         <h3 className="font-bold text-[#1a2332] text-base mt-1 line-clamp-1">{nombre}</h3>
-
-        {/* Precio */}
         <p className="text-[#00e5a0] font-bold text-lg mt-1">
           ${Number(precio).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
         </p>
-
-        {/* Descripción */}
         <p className="text-gray-500 text-xs mt-2 line-clamp-2 flex-1">{descripcion}</p>
 
-        {/* Fila inferior — estrellas + flecha (como en el wireframe) */}
+        {/* Fila inferior */}
         <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
           <div className="flex items-center gap-0.5">
             {[1, 2, 3].map(s => (

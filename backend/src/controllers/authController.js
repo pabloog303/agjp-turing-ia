@@ -7,9 +7,15 @@ async function login(req, res, next) {
   try {
     const { email, password } = req.body;
 
-    // Valida que ambos campos estén presentes
+    // Valida que ambos campos estén presentes y tengan formato básico
     if (!email || !password) {
       return res.status(400).json({ error: 'Email y password requeridos' });
+    }
+    if (typeof email !== 'string' || !email.includes('@') || email.length > 254) {
+      return res.status(400).json({ error: 'Email inválido' });
+    }
+    if (typeof password !== 'string' || password.length < 6 || password.length > 128) {
+      return res.status(400).json({ error: 'Password debe tener entre 6 y 128 caracteres' });
     }
 
     // Busca el usuario por email
