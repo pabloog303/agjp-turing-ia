@@ -4,6 +4,7 @@ const mysql = require('mysql2/promise');
 // Pool reutiliza conexiones en lugar de abrir una nueva por request
 const pool = mysql.createPool({
   host:             process.env.DB_HOST,
+  port:             Number(process.env.DB_PORT) || 3306,
   user:             process.env.DB_USER,
   password:         process.env.DB_PASS,
   database:         process.env.DB_NAME,
